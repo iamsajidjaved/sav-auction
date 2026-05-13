@@ -8,7 +8,11 @@
       "Bash(node *)",
       "Bash('#tld')",
       "Bash(HEADLESS=true node *)",
-      "Bash(grep -v '\\\\.sa\\\\.com$' data/raw-domains.txt)"
+      "Bash(grep -v '\\\\.sa\\\\.com$' data/raw-domains.txt)",
+      "Bash(grep '\\\\.sa\\\\.com$' data/raw-domains.txt)",
+      "Bash(grep '\\\\.za\\\\.com$' data/raw-domains.txt)",
+      "Bash(grep '\\\\.ru\\\\.com$' data/raw-domains.txt)",
+      "Bash(grep -vE '\\\\.\\(sa|za|ru\\)\\\\.com$' data/raw-domains.txt)"
     ]
   }
 }
