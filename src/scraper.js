@@ -10,24 +10,26 @@ const {
   hasNextPage,
   goToNextPage,
 } = require('./lib/auction');
-const { clearFile, appendLines } = require('./lib/writer');
+const { appendLines, loadSet } = require('./lib/writer');
 
 async function run() {
   console.log('=== SAV.com Auction Scraper ===');
   console.log(`Target TLDs: ${TARGET_TLDS.join(', ')}`);
   console.log(`Output: ${RAW_FILE}\n`);
 
-  clearFile(RAW_FILE);
+  // Load existing domains so we never write duplicates
+  const existingDomains = loadSet(RAW_FILE);
+  console.log(`Existing domains in file: ${existingDomains.size}`);
 
   const { browser, page } = await launchBrowser();
 
   try {
-    console.log(`Navigating to ${AUCTION_URL} ...`);
+    console.log(`\nNavigating to ${AUCTION_URL} ...`);
     await page.goto(AUCTION_URL, { waitUntil: 'networkidle0', timeout: 45000 });
     await waitForTableReady(page);
     console.log('Page loaded and table ready.\n');
 
-    let grandTotal = 0;
+    let newTotal = 0;
 
     for (const tld of TARGET_TLDS) {
       console.log(`\n${'─'.repeat(50)}`);
@@ -38,21 +40,34 @@ async function run() {
       await applyTldFilter(page, tld);
       await ensureRowsPerPage(page);
 
+      const tldSuffix = '.' + tld; // e.g. ".sa.com"
       let pageNum = 1;
-      let tldTotal = 0;
+      let tldNew = 0;
 
       while (true) {
-        const domains = await extractDomainsFromPage(page);
+        // extractDomainsFromPage already filters by tldSuffix (layer 2).
+        const domains = await extractDomainsFromPage(page, tldSuffix);
 
         if (domains.length === 0) {
           console.log(`  [${tld}] Page ${pageNum}: no domains — stopping`);
           break;
         }
 
-        appendLines(RAW_FILE, domains);
-        tldTotal += domains.length;
-        grandTotal += domains.length;
-        console.log(`  [${tld}] Page ${pageNum}: ${domains.length} domains (TLD total: ${tldTotal})`);
+        // Layer 3: final TLD guard + dedup against existing file
+        const newDomains = domains.filter(
+          (d) => d.endsWith(tldSuffix) && !existingDomains.has(d)
+        );
+
+        if (newDomains.length > 0) {
+          appendLines(RAW_FILE, newDomains);
+          newDomains.forEach((d) => existingDomains.add(d));
+        }
+
+        tldNew += newDomains.length;
+        newTotal += newDomains.length;
+        console.log(
+          `  [${tld}] Page ${pageNum}: ${domains.length} scraped, ${newDomains.length} new (TLD new total: ${tldNew})`
+        );
 
         const more = await hasNextPage(page);
         if (!more) {
@@ -64,12 +79,13 @@ async function run() {
         pageNum++;
       }
 
-      console.log(`  [${tld}] Complete — ${tldTotal} domains.`);
+      console.log(`  [${tld}] Complete — ${tldNew} new domains added.`);
     }
 
     console.log(`\n${'='.repeat(50)}`);
-    console.log(`Scraping complete. Total domains: ${grandTotal}`);
-    console.log(`Saved to: ${RAW_FILE}`);
+    console.log(`Done. New domains added: ${newTotal}`);
+    console.log(`Total unique domains in file: ${existingDomains.size}`);
+    console.log(`File: ${RAW_FILE}`);
 
   } finally {
     await browser.close();

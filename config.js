@@ -9,6 +9,7 @@ module.exports = {
 
   RAW_FILE: 'data/raw-domains.txt',
   AVAILABLE_FILE: 'data/available-domains.txt',
+  CHECKED_FILE: 'data/checked-domains.txt',
 
   // Delay between WHOIS queries to avoid rate limiting
   WHOIS_DELAY_MS: parseInt(process.env.WHOIS_DELAY_MS || '1500', 10),

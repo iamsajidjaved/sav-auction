@@ -21,4 +21,12 @@ function appendLines(filePath, lines) {
   fs.appendFileSync(filePath, content, 'utf8');
 }
 
-module.exports = { clearFile, appendLines };
+// Loads a file into a Set of non-empty trimmed lines
+function loadSet(filePath) {
+  if (!fs.existsSync(filePath)) return new Set();
+  return new Set(
+    fs.readFileSync(filePath, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean)
+  );
+}
+
+module.exports = { clearFile, appendLines, loadSet };

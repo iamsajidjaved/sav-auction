@@ -91,35 +91,27 @@ async function clearFilters(page) {
 
 // ─── DOM-based content wait ───────────────────────────────────────────────────
 
-// After a filter is applied, poll until the table shows domains with the expected
-// TLD suffix OR the table stays empty for 2s (genuine 0-result TLD).
+// After a filter is applied, poll until EVERY visible domain link matches the
+// expected TLD suffix. This is the only reliable signal that the filter has
+// fully settled — a single mismatched domain means the table is still in
+// transition. Give up after 25 s (genuinely 0 results or extremely slow load).
 async function waitForFilteredContent(page, suffix) {
-  let stableZeroCount = 0;
-  const deadline = Date.now() + 15000;
+  const deadline = Date.now() + 25000;
 
   while (Date.now() < deadline) {
-    const info = await page.evaluate((sel, expectedSuffix) => {
+    const status = await page.evaluate((sel, expectedSuffix) => {
       const links = Array.from(document.querySelectorAll(sel));
-      if (links.length === 0) return { count: 0, ready: false };
-      const firstText = links[0].textContent.trim().split(/\s+/)[0];
-      return {
-        count: links.length,
-        ready: firstText.endsWith(expectedSuffix),
-        first: firstText,
-      };
+      if (links.length === 0) return { count: 0, allMatch: false };
+      const domains = links.map((a) => a.textContent.trim().split(/\s+/)[0]);
+      const allMatch = domains.every((d) => d.endsWith(expectedSuffix));
+      return { count: links.length, allMatch };
     }, SEL.domainLink, suffix);
 
-    if (info.count > 0 && info.ready) return; // filtered results are live
-
-    if (info.count === 0) {
-      stableZeroCount++;
-      if (stableZeroCount >= 5) return; // empty for 5 × 400 ms = 2 s → 0 results
-    } else {
-      stableZeroCount = 0; // still showing old/wrong-TLD data, keep waiting
-    }
-
-    await delay(400);
+    // Only proceed when every visible link belongs to the filtered TLD
+    if (status.count > 0 && status.allMatch) return;
+    await delay(500);
   }
+  // Timeout: either 0 results for this TLD or load exceeded 25 s
 }
 
 // ─── Rows per page ────────────────────────────────────────────────────────────
@@ -153,16 +145,18 @@ async function ensureRowsPerPage(page) {
 
 // ─── Domain extraction ────────────────────────────────────────────────────────
 
-async function extractDomainsFromPage(page) {
-  return page.evaluate((sel) => {
+// tldSuffix (e.g. ".sa.com") is required — only domains ending with it are returned.
+// This is the second layer of protection against wrong-TLD domains leaking through.
+async function extractDomainsFromPage(page, tldSuffix) {
+  return page.evaluate((sel, suffix) => {
     const anchors = document.querySelectorAll(sel);
     const domains = [];
     for (const a of anchors) {
       const text = (a.textContent || a.innerText || '').trim().split(/\s+/)[0];
-      if (text && text.includes('.')) domains.push(text);
+      if (text && text.endsWith(suffix)) domains.push(text);
     }
     return [...new Set(domains)];
-  }, SEL.domainLink);
+  }, SEL.domainLink, tldSuffix);
 }
 
 // ─── Pagination ───────────────────────────────────────────────────────────────

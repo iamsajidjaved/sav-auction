@@ -12,7 +12,9 @@
       "Bash(grep '\\\\.sa\\\\.com$' data/raw-domains.txt)",
       "Bash(grep '\\\\.za\\\\.com$' data/raw-domains.txt)",
       "Bash(grep '\\\\.ru\\\\.com$' data/raw-domains.txt)",
-      "Bash(grep -vE '\\\\.\\(sa|za|ru\\)\\\\.com$' data/raw-domains.txt)"
+      "Bash(grep -vE '\\\\.\\(sa|za|ru\\)\\\\.com$' data/raw-domains.txt)",
+      "Bash(grep -vE '\\\\.\\(sa|za|ru\\)\\\\.com$|\\\\.in\\\\.net$' data/raw-domains.txt)",
+      "Bash(grep -v '^$')"
     ]
   }
 }
