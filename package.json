@@ -1,0 +1,18 @@
+{
+  "name": "sav-auction",
+  "version": "1.0.0",
+  "description": "Puppeteer scraper for SAV.com v2 domain auctions with WHOIS availability checking",
+  "main": "src/scraper.js",
+  "scripts": {
+    "scrape": "node src/scraper.js",
+    "check": "node src/checker.js"
+  },
+  "dependencies": {
+    "puppeteer": "^24.15.0",
+    "whoiser": "^1.17.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}

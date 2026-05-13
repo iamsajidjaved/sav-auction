@@ -1,0 +1,5 @@
+node_modules/
+data/raw-domains.txt
+data/available-domains.txt
+.env
+*.log

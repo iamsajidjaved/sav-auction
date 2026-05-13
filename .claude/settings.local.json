@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem *)",
+      "PowerShell(npm list *)",
+      "Bash(git config *)",
+      "Bash(npm install *)",
+      "Bash(node *)",
+      "Bash('#tld')",
+      "Bash(HEADLESS=true node *)",
+      "Bash(grep -v '\\\\.sa\\\\.com$' data/raw-domains.txt)"
+    ]
+  }
+}
